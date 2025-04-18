@@ -56,8 +56,3 @@ def handle_message(event):
 if __name__ == "__main__":
     app.run(port=5000)
 
-    pip freeze > requirements.txt
-git add requirements.txt
-git commit -m "Add requirements.txt"
-git push origin main
-
