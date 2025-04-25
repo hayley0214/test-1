@@ -7,7 +7,7 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 # 設定 LINE API
-LINE_CHANNEL_ACCESS_TOKEN = "Cyez3SBJqPIV3Jyrf58MzwJAEkVpf+OvcMN1Wv6h0qry8KV0zwSKj6q9neuttVdUu5re7+BorLXfj0rmDIfGvYwQ/kyrd1DTQgNh25XAouoB4nerJ8jSPTB3rQJtsoFeSkAA3PAEAB+lndQEQujRSQdB04t89/1O/w1cDnyilFU="
+LINE_CHANNEL_ACCESS_TOKEN = "JEy4rwh7KNQNrQdlxCjk4YkpJ7PNn4XhE/XLC2czEhlloe7fsNilTG/spbKKfnu+u5re7+BorLXfj0rmDIfGvY wQ/kyrd1DTQgNh25XAouq0w8iix9A0f++vxIiyUynraVZB2awDBNV/VirSdK+3DwdB04t89/1O/w1cDnyilFU="
 LINE_CHANNEL_SECRET = "e01ae91e66566f00e45594e223afa0f6"
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
