@@ -6,7 +6,7 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 app = Flask(__name__)
 
 # 初始化 LINE Bot API
-line_bot_api = LineBotApi('Cyez3SBJqPIV3Jyrf58MzwJAEkVpf+OvcMN1Wv6h0qry8KV0zwSKj6q9neuttVdUu5re7+BorLXfj0rmDIfGvYwQ/kyrd1DTQgNh25XAouoB4nerJ8jSPTB3rQJtsoFeSkAA3PAEAB+lndQEQujRSQdB04t89/1O/w1cDnyilFU=')
+line_bot_api = LineBotApi('JEy4rwh7KNQNrQdlxCjk4YkpJ7PNn4XhE/XLC2czEhlloe7fsNilTG/spbKKfnu+u5re7+BorLXfj0rmDIfGvY wQ/kyrd1DTQgNh25XAouq0w8iix9A0f++vxIiyUynraVZB2awDBNV/VirSdK+3DwdB04t89/1O/w1cDnyilFU=')
 handler = WebhookHandler('e01ae91e66566f00e45594e223afa0f6')
 
 @app.route("/callback", methods=['POST'])
@@ -32,3 +32,8 @@ def handle_message(event):
 
 if __name__ == "__main__":
     app.run()
+
+#Render網址顯示
+@app.route('/')
+def index():
+    return 'LINE Bot is running on Render!'
