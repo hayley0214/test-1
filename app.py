@@ -1,3 +1,14 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # 載入 .env 中的環境變數
+
+# 讀取憑證
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+CWB_API_KEY = os.getenv("CWB_API_KEY")
+
+
 from flask import Flask, request, abort
 import os
 import requests
