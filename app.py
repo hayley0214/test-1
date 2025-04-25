@@ -1,70 +1,60 @@
+from flask import Flask, request, abort
 import os
 import requests
-from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 app = Flask(__name__)
 
-# 從環境變數讀取 LINE 憑證
-line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+# 從環境變數讀取 LINE Bot 憑證
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+CWB_API_KEY = os.getenv("CWB_API_KEY")
 
-# 中央氣象局 API Key（你也可以改成 os.getenv("CWB_API_KEY")）
-CWB_API_KEY = "CWA-6DA407C7-D330-4E0C-BBEC-2DA1F6B260EA"
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-@app.route("/")
-def home():
-    return "LINE Bot with CWB Weather is running!"
+# 抓取天氣資料函式
+def get_weather(city):
+    url = f'https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization={CWB_API_KEY}&format=JSON'
+    res = requests.get(url)
+    data = res.json()
 
-@app.route("/callback", methods=["POST"])
+    for location in data['records']['location']:
+        if location['locationName'] == city:
+            wx = location['weatherElement'][0]['time'][0]['parameter']['parameterName']
+            pop = location['weatherElement'][1]['time'][0]['parameter']['parameterName']
+            min_t = location['weatherElement'][2]['time'][0]['parameter']['parameterName']
+            max_t = location['weatherElement'][4]['time'][0]['parameter']['parameterName']
+            return f"{city} 天氣：{wx}\n降雨機率：{pop}%\n氣溫：{min_t}°C ~ {max_t}°C"
+
+    return "請輸入正確的縣市名稱（例如：台北、高雄、台中）"
+
+# Webhook 入口
+@app.route("/callback", methods=['POST'])
 def callback():
-    signature = request.headers["X-Line-Signature"]
+    signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
 
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
+    
+    return 'OK'
 
-    return "OK"
-
+# 回覆使用者訊息
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     city = event.message.text.strip()
-    weather = get_weather(city)
-    reply = weather if weather else f"找不到「{city}」的天氣資訊，請輸入正確的縣市名稱。"
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply)
-    )
+    result = get_weather(city)
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
 
-def get_weather(city):
-    url = "https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001"
-    params = {
-        "Authorization": CWB_API_KEY,
-        "locationName": city
-    }
-    res = requests.get(url, params=params)
-    if res.status_code != 200:
-        return None
-
-    try:
-        location_data = res.json()["records"]["location"][0]
-        city_name = location_data["locationName"]
-        wx = location_data["weatherElement"][0]["time"][0]["parameter"]["parameterName"]
-        pop = location_data["weatherElement"][1]["time"][0]["parameter"]["parameterName"]
-        min_t = location_data["weatherElement"][2]["time"][0]["parameter"]["parameterName"]
-        max_t = location_data["weatherElement"][4]["time"][0]["parameter"]["parameterName"]
-
-        return (
-            f"{city_name} 天氣：{wx}\n"
-            f"降雨機率：{pop}%\n"
-            f"氣溫：{min_t}°C ~ {max_t}°C"
-        )
-    except:
-        return None
+# 首頁測試用
+@app.route('/')
+def index():
+    return "LINE Bot with CWB Weather is running!"
 
 if __name__ == "__main__":
     app.run()
