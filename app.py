@@ -1,17 +1,16 @@
+import os
+import requests
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
-import requests
-import os
 from dotenv import load_dotenv
 
-# 讀取 .env 環境變數
 load_dotenv()
 
 app = Flask(__name__)
 
-# 環境變數（請先設在 .env 或 Render 設定中）
+# LINE 憑證從 .env 讀取
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 CWB_API_KEY = os.getenv("CWB_API_KEY")
@@ -19,27 +18,45 @@ CWB_API_KEY = os.getenv("CWB_API_KEY")
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-# 中央氣象局 API URL（36小時天氣預報）
-CWB_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001"
+# 城市名稱對應表
+city_aliases = {
+    "台北": "臺北市", "台北市": "臺北市",
+    "台中": "臺中市", "台中市": "臺中市",
+    "台南": "臺南市", "台南市": "臺南市",
+    "高雄": "高雄市", "高雄市": "高雄市",
+    "新北": "新北市", "新北": "新北市",
+    "桃園": "桃園市", "桃園市": "桃園市",
+    "基隆": "基隆市", "基隆市": "基隆市",
+    "新竹": "新竹市", "新竹市": "新竹市",
+    "嘉義": "嘉義市", "嘉義市": "嘉義市",
+    "宜蘭": "宜蘭縣", "宜蘭縣": "宜蘭縣",
+    "花蓮": "花蓮縣", "花蓮縣": "花蓮縣",
+    "台東": "臺東縣", "台東縣": "臺東縣",
+}
 
 def get_weather(city):
+    url = "https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001"
     params = {
         "Authorization": CWB_API_KEY,
-        "locationName": city
+        "format": "JSON"
     }
-    try:
-        response = requests.get(CWB_URL, params=params)
-        data = response.json()
-        location_data = data["records"]["location"][0]
-        city_name = location_data["locationName"]
-        weather = location_data["weatherElement"][0]["time"][0]["parameter"]["parameterName"]
-        return f"{city_name} 的天氣是：{weather}"
-    except Exception:
-        return "查無此城市或氣象資料有誤，請重新輸入！"
 
-@app.route("/", methods=['GET'])
-def index():
-    return "LINE Bot 天氣查詢服務運作中"
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+        locations = data['records']['location']
+
+        for location in locations:
+            if location['locationName'] == city:
+                weather = location['weatherElement'][0]['time'][0]['parameter']['parameterName']
+                rain = location['weatherElement'][1]['time'][0]['parameter']['parameterName']
+                temp_min = location['weatherElement'][2]['time'][0]['parameter']['parameterName']
+                temp_max = location['weatherElement'][4]['time'][0]['parameter']['parameterName']
+                return f"{weather}，降雨機率 {rain}%，氣溫 {temp_min}°C - {temp_max}°C"
+        return None
+    except Exception as e:
+        print("Error fetching weather:", e)
+        return None
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -55,12 +72,20 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    city = event.message.text.strip()
-    weather_info = get_weather(city)
+    user_text = event.message.text.strip()
+    city_name = city_aliases.get(user_text, user_text)  # 標準化
+
+    weather_data = get_weather(city_name)
+
+    if weather_data:
+        reply = f"{city_name} 天氣資訊：\n{weather_data}"
+    else:
+        reply = f"找不到「{user_text}」的天氣資訊，請輸入正確的城市名稱。"
+
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text=weather_info)
+        TextSendMessage(text=reply)
     )
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run()
