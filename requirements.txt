@@ -2,3 +2,4 @@ flask
 gunicorn
 line-bot-sdk
 requests
+python-dotenv
