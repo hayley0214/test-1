@@ -1,0 +1,6 @@
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    user_text = event.message.text.strip()
+    # ↓ 這邊插入城市對應轉換
+    # ...
+    # 呼叫中央氣象局 API 使用 city_name
